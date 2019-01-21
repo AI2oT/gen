@@ -3,7 +3,6 @@ package template
 var ModelTmpl = `package {{.PackageName}}
 
 import (
-    "database/sql"
     "time"
 )
 

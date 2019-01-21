@@ -4,7 +4,6 @@
 
 The gen tool produces golang structs from a given database for use in a .go file.
 It supports [gorm](https://github.com/jinzhu/gorm) tags and implements some usable methods.
-It can also generate RESTful api for those structs.
 
 By reading details from the database about the column structure, gen generates a go compatible struct type
 with the required column names, data types, and annotations.
@@ -19,7 +18,7 @@ gen is based/inspired by the work of Seth Shelnutt's [db2struct](https://github.
 
 ```BASH
 go get github.com/smallnest/gen
-gen --connstr "root@tcp(127.0.0.1:3306)/employees?&parseTime=True" --database employees  --json --gorm --guregu --rest
+gen --connstr "root@tcp(127.0.0.1:3306)/employees?&parseTime=True" --database employees  --json --gorm
 ```
 
 ## Supported Databases
