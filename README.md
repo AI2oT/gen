@@ -27,8 +27,6 @@ Currently Supported
 - MariaDB
 - MySQL
 - PostgreSQL
-- Microsoft SQL Server
-- SQLite
 
 Planned Support
 - Oracle
