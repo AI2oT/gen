@@ -11,16 +11,14 @@ import (
 	"strings"
 	"text/template"
 
-	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/AI2oT/gen/dbmeta"
+	gtmpl "github.com/AI2oT/gen/template"
 	"github.com/droundy/goopt"
 	"github.com/jimsmart/schema"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/jinzhu/inflection"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/serenize/snaker"
-	"github.com/smallnest/gen/dbmeta"
-	gtmpl "github.com/smallnest/gen/template"
 )
 
 var (
@@ -32,9 +30,6 @@ var (
 
 	jsonAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
 	gormAnnotation = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
-	gureguTypes    = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
-
-	rest = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 
 	verbose = goopt.Flag([]string{"-v", "--verbose"}, []string{}, "Enable verbose output", "")
 )
@@ -42,7 +37,7 @@ var (
 func init() {
 	// Setup goopts
 	goopt.Description = func() string {
-		return "ORM and RESTful API generator for Mysql"
+		return "ORM generator for Mysql"
 	}
 	goopt.Version = "0.1"
 	goopt.Summary = `gen [-v] --connstr "user:password@/dbname" --package pkgName --database databaseName --table tableName [--json] [--gorm] [--guregu]`
@@ -88,20 +83,9 @@ func main() {
 	}
 	os.Mkdir("model", 0777)
 
-	apiName := "api"
-	if *rest {
-		os.Mkdir(apiName, 0777)
-	}
-
 	t, err := getTemplate(gtmpl.ModelTmpl)
 	if err != nil {
 		fmt.Println("Error in loading model template: " + err.Error())
-		return
-	}
-
-	ct, err := getTemplate(gtmpl.ControllerTmpl)
-	if err != nil {
-		fmt.Println("Error in loading controller template: " + err.Error())
 		return
 	}
 
@@ -113,7 +97,7 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *jsonAnnotation, *gormAnnotation)
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)
@@ -128,42 +112,8 @@ func main() {
 		}
 		ioutil.WriteFile(filepath.Join("model", inflection.Singular(tableName)+".go"), data, 0777)
 
-		if *rest {
-			//write api
-			buf.Reset()
-			err = ct.Execute(&buf, map[string]string{"PackageName": *packageName + "/model", "StructName": structName})
-			if err != nil {
-				fmt.Println("Error in rendering controller: " + err.Error())
-				return
-			}
-			data, err = format.Source(buf.Bytes())
-			if err != nil {
-				fmt.Println("Error in formating source: " + err.Error())
-				return
-			}
-			ioutil.WriteFile(filepath.Join(apiName, inflection.Singular(tableName)+".go"), data, 0777)
-		}
 	}
 
-	if *rest {
-		rt, err := getTemplate(gtmpl.RouterTmpl)
-		if err != nil {
-			fmt.Println("Error in lading router template")
-			return
-		}
-		var buf bytes.Buffer
-		err = rt.Execute(&buf, structNames)
-		if err != nil {
-			fmt.Println("Error in rendering router: " + err.Error())
-			return
-		}
-		data, err := format.Source(buf.Bytes())
-		if err != nil {
-			fmt.Println("Error in formating source: " + err.Error())
-			return
-		}
-		ioutil.WriteFile(filepath.Join(apiName, "router.go"), data, 0777)
-	}
 }
 
 func getTemplate(t string) (*template.Template, error) {
